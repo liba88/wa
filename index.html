@@ -2,25 +2,58 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting...</title>
     <link rel="dns-prefetch" href="//script.google.com">
     <link rel="preconnect" href="https://script.google.com" crossorigin>
-    <script>
-        // 1. 最原始的 XHR 请求，比 Fetch 更快触发
-        var x = new XMLHttpRequest();
-        x.open("GET", "你的GOOGLE脚本链接", true);
-        x.onreadystatechange = function() {
-            if (x.readyState === 4 && x.status === 200) {
-                var p = x.responseText.trim();
-                if (p !== "full" && p.length > 5) {
-                    // 2. 瞬间重定向
-                    location.replace("https://wa.me/" + p);
-                } else {
-                    document.body.innerHTML = "Full";
-                }
-            }
-        };
-        x.send();
-    </script>
+    
+    <style>
+        /* 1. 极致轻量化样式，渲染时间 < 10ms */
+        body { font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #ffffff; }
+        .card { text-align: center; }
+        .loader { width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #25D366; border-radius: 50%; animation: s 0.6s linear infinite; margin: 0 auto 16px; }
+        @keyframes s { to { transform: rotate(360deg); } }
+        h3 { color: #075e54; margin: 0; font-size: 18px; font-weight: 500; }
+    </style>
 </head>
-<body style="background:#fff"></body>
+<body>
+    <div class="card">
+        <div class="loader"></div>
+        <h3>正在分配线路...</h3>
+    </div>
+
+    <script>
+        (function() {
+            // 【请确保此处是你的真实 Google 脚本链接】
+            var api = "https://script.google.com/macros/s/AKfycbxaPzWyfb2Umi0rK75ybMS889KiH1kgrvneMlFFd6njh2qKR_xEjpDHViRFX3IRiiY/exec";
+
+            // 3. 使用兼容性最好、触发最快的原生 XHR
+            var x = new XMLHttpRequest();
+            x.open("GET", api, true);
+            
+            x.onreadystatechange = function() {
+                if (x.readyState === 4) {
+                    if (x.status === 200) {
+                        var p = x.responseText.trim();
+                        if (p === "full") {
+                            document.body.innerHTML = "<h4>今日名额已满</h4>";
+                        } else if (p.length > 5) {
+                            // 4. 拿到结果瞬间跳转
+                            window.location.replace("https://wa.me/" + p);
+                        }
+                    } else {
+                        // 5. 容错逻辑：如果后端报错，1秒后重试
+                        setTimeout(function(){ window.location.reload(); }, 1000);
+                    }
+                }
+            };
+            
+            // 设定超时：如果 Google 脚本 8秒没响应，强制显示错误
+            x.timeout = 8000;
+            x.ontimeout = function () { document.body.innerHTML = "<h4>连接超时，请刷新</h4>"; };
+            
+            x.send();
+        })();
+    </script>
+</body>
 </html>
