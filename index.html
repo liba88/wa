@@ -2,42 +2,25 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connecting...</title>
     <link rel="dns-prefetch" href="//script.google.com">
     <link rel="preconnect" href="https://script.google.com" crossorigin>
-    <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-    
-    <style>
-        body { font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #ffffff; }
-        .loader { width: 30px; height: 30px; border: 2px solid #f3f3f3; border-top: 2px solid #25D366; border-radius: 50%; animation: s 0.6s linear infinite; }
-        @keyframes s { to { transform: rotate(360deg); } }
-    </style>
-
     <script>
-        // 2. 极限抢跑：在浏览器解析 Body 之前就开始发请求
-        (function() {
-            var url = "https://script.google.com/macros/s/AKfycbxaPzWyfb2Umi0rK75ybMS889KiH1kgrvneMlFFd6njh2qKR_xEjpDHViRFX3IRiiY/exec";
-            
-            // 使用同步优先级最高的原生请求
-            var x = new XMLHttpRequest();
-            x.open("GET", url, true);
-            x.onreadystatechange = function() {
-                if (x.readyState === 4 && x.status === 200) {
-                    var p = x.responseText.trim();
-                    if (p === "full") {
-                        document.body.innerHTML = "<h4>名额已满</h4>";
-                    } else if (p.length > 5) {
-                        // 3. 强制跳转，不留历史记录
-                        window.location.replace("https://wa.me/" + p);
-                    }
+        // 1. 最原始的 XHR 请求，比 Fetch 更快触发
+        var x = new XMLHttpRequest();
+        x.open("GET", "你的GOOGLE脚本链接", true);
+        x.onreadystatechange = function() {
+            if (x.readyState === 4 && x.status === 200) {
+                var p = x.responseText.trim();
+                if (p !== "full" && p.length > 5) {
+                    // 2. 瞬间重定向
+                    location.replace("https://wa.me/" + p);
+                } else {
+                    document.body.innerHTML = "Full";
                 }
-            };
-            x.send();
-        })();
+            }
+        };
+        x.send();
     </script>
 </head>
-<body>
-    <div class="loader"></div>
-</body>
+<body style="background:#fff"></body>
 </html>
