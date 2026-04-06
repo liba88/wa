@@ -4,58 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connecting...</title>
-    <link rel="preconnect" href="https://script.google.com">
     <style>
-        body { 
-            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            margin: 0; 
-            background-color: #ffffff; 
-        }
-        .container { text-align: center; }
-        /* 极致精简的进度条 */
-        .loader { 
-            width: 28px; 
-            height: 28px; 
-            border: 3px solid #f3f3f3; 
-            border-top: 3px solid #25D366; 
-            border-radius: 50%; 
-            animation: spin 0.7s linear infinite; 
-            margin: 0 auto 12px; 
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        h3 { color: #075e54; font-size: 16px; font-weight: 500; margin: 0; }
+        /* 极致简约：初次加载纯白，防止闪烁 */
+        html, body { margin: 0; padding: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: -apple-system, sans-serif; }
+        .loader { width: 28px; height: 28px; border: 3px solid #f3f3f3; border-top: 3px solid #25D366; border-radius: 50%; animation: s 0.7s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="ui">
         <div class="loader"></div>
-        <h3>Connecting to support...</h3>
+        <p style="margin-top:12px; color:#075e54; font-size:14px;">Connecting to support...</p>
     </div>
 
     <script>
-        (function() {
-            // 你的 Google 脚本 API 链接
-            var api = "https://script.google.com/macros/s/AKfycbxaPzWyfb2Umi0rK75ybMS889KiH1kgrvneMlFFd6njh2qKR_xEjpDHViRFX3IRiiY/exec";
+    (function() {
+        // 1. 这里填入你的所有客服号码
+        const rawNumbers = [
+            "8613800000001",
+            "8613800000002",
+            "8613800000004"
+            // 号码 3 状态是“关闭”，所以这里没加
+        ];
 
-            var x = new XMLHttpRequest();
-            x.open("GET", api, true);
-            x.onreadystatechange = function() {
-                if (x.readyState === 4 && x.status === 200) {
-                    var p = x.responseText.trim();
-                    if (p === "full") {
-                        document.querySelector('h3').innerText = "Service currently full";
-                    } else if (p.length > 5) {
-                        // 瞬间跳转到 WhatsApp
-                        window.location.replace("https://wa.me/" + p);
-                    }
-                }
-            };
-            x.send();
-        })();
+        // 本地存储标记，防止重复
+        const KEY_BAG = "wa_bag_v1";
+        
+        // 2. 洗牌算法：打乱顺序
+        function shuffle(arr) {
+            let copy = arr.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // 3. 核心分流逻辑
+        function getNextNumber() {
+            let bag = [];
+            try {
+                bag = JSON.parse(localStorage.getItem(KEY_BAG) || "[]");
+            } catch (e) { bag = []; }
+
+            // 如果包空了，重新装填并洗牌
+            if (bag.length === 0) {
+                bag = shuffle(rawNumbers);
+            }
+
+            const pick = bag.shift(); // 取出第一个
+            localStorage.setItem(KEY_BAG, JSON.stringify(bag)); // 保存剩下的
+            return pick;
+        }
+
+        const targetPhone = getNextNumber();
+
+        if (targetPhone) {
+            // 4. 毫秒级跳转
+            // 如果你想记录数据到 Google，可以在这里执行 fetch，但为了追求极致速度，直接跳转最快
+            location.replace("https://wa.me/" + targetPhone);
+        } else {
+            document.getElementById('ui').innerHTML = "No service available.";
+        }
+    })();
     </script>
 </body>
 </html>
