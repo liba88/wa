@@ -4,56 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connecting...</title>
-    <link rel="dns-prefetch" href="//script.google.com">
-    <link rel="preconnect" href="https://script.google.com" crossorigin>
-    
+    <link rel="preconnect" href="https://script.google.com">
     <style>
-        /* 1. 极致轻量化样式，渲染时间 < 10ms */
         body { font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #ffffff; }
         .card { text-align: center; }
-        .loader { width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #25D366; border-radius: 50%; animation: s 0.6s linear infinite; margin: 0 auto 16px; }
-        @keyframes s { to { transform: rotate(360deg); } }
-        h3 { color: #075e54; margin: 0; font-size: 18px; font-weight: 500; }
+        /* 2. 动画效果：让用户感知到正在加载，不显枯燥 */
+        .loader { width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #25D366; border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h3 { color: #075e54; font-size: 18px; font-weight: 500; margin: 0; }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="loader"></div>
-        <h3>正在分配线路...</h3>
+        <h3>正在为您连接客服...</h3>
     </div>
 
     <script>
-        (function() {
-            // 【请确保此处是你的真实 Google 脚本链接】
-            var api = "https://script.google.com/macros/s/AKfycbxaPzWyfb2Umi0rK75ybMS889KiH1kgrvneMlFFd6njh2qKR_xEjpDHViRFX3IRiiY/exec";
+        // 你的 Google 部署链接
+        const apiUrl = "https://script.google.com/macros/s/AKfycbxaPzWyfb2Umi0rK75ybMS889KiH1kgrvneMlFFd6njh2qKR_xEjpDHViRFX3IRiiY/exec";
 
-            // 3. 使用兼容性最好、触发最快的原生 XHR
-            var x = new XMLHttpRequest();
-            x.open("GET", api, true);
-            
-            x.onreadystatechange = function() {
-                if (x.readyState === 4) {
-                    if (x.status === 200) {
-                        var p = x.responseText.trim();
-                        if (p === "full") {
-                            document.body.innerHTML = "<h4>今日名额已满</h4>";
-                        } else if (p.length > 5) {
-                            // 4. 拿到结果瞬间跳转
-                            window.location.replace("https://wa.me/" + p);
-                        }
-                    } else {
-                        // 5. 容错逻辑：如果后端报错，1秒后重试
-                        setTimeout(function(){ window.location.reload(); }, 1000);
-                    }
+        // 3. 使用 fetch 模式，这是目前最快且兼容性最好的跳转方式
+        async function loadAndRedirect() {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                const phone = await response.text();
+
+                if (phone === "full") {
+                    document.querySelector('h3').innerText = "今日咨询名额已满";
+                    document.querySelector('.loader').style.display = 'none';
+                } else if (phone && phone.length > 5) {
+                    // 4. 拿到号码，瞬间跳转
+                    window.location.replace("https://wa.me/" + phone.trim());
                 }
-            };
-            
-            // 设定超时：如果 Google 脚本 8秒没响应，强制显示错误
-            x.timeout = 8000;
-            x.ontimeout = function () { document.body.innerHTML = "<h4>连接超时，请刷新</h4>"; };
-            
-            x.send();
-        })();
+            } catch (error) {
+                console.error("Redirect Error:", error);
+                // 如果出错，3秒后重试
+                setTimeout(() => { window.location.reload(); }, 3000);
+            }
+        }
+
+        // 立即启动
+        loadAndRedirect();
     </script>
 </body>
 </html>
