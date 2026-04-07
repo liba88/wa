@@ -19,9 +19,8 @@
     (function() {
         const API_URL = "https://script.google.com/macros/s/AKfycbxaPzWyfb2Umi0rK75ybMS889KiH1kgrvneMlFFd6njh2qKR_xEjpDHViRFX3IRiiY/exec";
         
-        // 【核心：本地兜底池】
-        // 当手机第一次访问或网络极差时，直接从这里选号，保住 1.2 秒首跳速度
-        const BACKUP_POOL = ["8613800000001", "8613800000002", "8613800000003", "8613800000004"];
+        // 【本地静态池】确保第一次访问的绝对速度
+        const STATIC_POOL = ["8613800000001", "8613800000002", "8613800000003", "8613800000004"];
 
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -34,30 +33,36 @@
             return;
         }
 
-        // 2. 获取当前的可用号码池（优先用上次同步成功的，没有就用兜底的）
-        let activePool = JSON.parse(localStorage.getItem('wa_active_pool') || "[]");
-        if (activePool.length === 0) {
-            activePool = BACKUP_POOL;
+        // 2. 智能选号逻辑
+        // 优先获取“未满额”的号码池，如果没有，就用全量静态池
+        let availablePool = JSON.parse(localStorage.getItem('wa_available_pool') || "[]");
+        if (availablePool.length === 0) {
+            availablePool = STATIC_POOL;
         }
 
-        // 3. 随机选号并【立即跳转】
-        const target = activePool[Math.floor(Math.random() * activePool.length)];
+        // 随机选一个号
+        const target = availablePool[Math.floor(Math.random() * availablePool.length)];
+        
+        // 3. 【立即跳转】
         window.location.replace("https://wa.me/" + target);
 
-        // 4. 【异步静默操作】（跳转后在后台运行，不影响客户速度）
-        // A. 记录点击数据
+        // 4. 【异步静默同步】更新下一次的号码池状态
+        // A. 记录本次点击
         new Image().src = `${API_URL}?mode=log&phone=${target}&t=${Date.now()}`;
 
-        // B. 同步最新的号码开关状态（存入本地供下次使用）
+        // B. 获取表格最新状态（避开已满额的号）
         var xhr = new XMLHttpRequest();
         xhr.open("GET", API_URL + "?mode=get_all", true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {
                 try {
                     const latestNums = JSON.parse(xhr.responseText);
-                    if (latestNums.length > 0) {
-                        // 把 Google 表格里真正“开启”的号存下来
-                        localStorage.setItem('wa_active_pool', JSON.stringify(latestNums));
+                    if (latestNums && latestNums.length > 0) {
+                        // 这里的 latestNums 必须是 Google 脚本中过滤掉“状态关闭”和“已满额”后的号码
+                        localStorage.setItem('wa_available_pool', JSON.stringify(latestNums));
+                    } else {
+                        // 如果全部都满了，下次就随机乱跳（兜底）
+                        localStorage.setItem('wa_available_pool', JSON.stringify(STATIC_POOL));
                     }
                 } catch(e) {}
             }
